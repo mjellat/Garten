@@ -1,0 +1,64 @@
+# Baut das Docker-Image für ARM64 (Raspberry Pi 5) und pusht es
+# in die GitLab Container Registry.
+#
+# Benötigt: GitLab Container Registry aktiviert (Settings → Packages & Registries)
+# Runner:   Jeder Standard-Runner mit Docker-in-Docker reicht aus (x86 oder ARM64).
+#           Für native ARM64-Builds: Runner-Tag "arm64" verwenden (siehe Kommentar unten).
+
+stages:
+  - build
+
+variables:
+  # GitLab-interne Registry-Variablen werden automatisch gesetzt:
+  #   $CI_REGISTRY          z.B. registry.gitlab.com
+  #   $CI_REGISTRY_IMAGE    z.B. registry.gitlab.com/mjellat/garten
+  #   $CI_REGISTRY_USER     Deploy-Token-User
+  #   $CI_REGISTRY_PASSWORD Deploy-Token-Passwort
+  IMAGE: $CI_REGISTRY_IMAGE
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+
+# ── Build & Push ──────────────────────────────────────────────────────────────
+docker-build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+
+  # Nur auf dem Default-Branch und bei Git-Tags ausführen
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+  before_script:
+    # Registry-Login
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+    # QEMU für ARM64-Emulation registrieren (Cross-Build auf x86-Runner)
+    # Entfällt, wenn ein nativer ARM64-Runner verwendet wird (tags: [arm64])
+    - docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+    # Buildx-Builder mit Multi-Plattform-Support anlegen
+    - docker buildx create --name raspi-builder --driver docker-container --use
+    - docker buildx inspect --bootstrap
+
+  script:
+    # Tags berechnen: immer :latest + kurzer SHA; bei Git-Tag zusätzlich den Tag-Namen
+    - |
+      TAGS="--tag $IMAGE:latest --tag $IMAGE:$CI_COMMIT_SHORT_SHA"
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        TAGS="$TAGS --tag $IMAGE:$CI_COMMIT_TAG"
+      fi
+
+    # Multi-Stage-Build für linux/arm64, Registry-Cache nutzen
+    - |
+      docker buildx build \
+        --platform linux/arm64 \
+        --cache-from type=registry,ref=$IMAGE:buildcache \
+        --cache-to   type=registry,ref=$IMAGE:buildcache,mode=max \
+        $TAGS \
+        --push \
+        .
+
+  after_script:
+    - docker buildx rm raspi-builder || true
