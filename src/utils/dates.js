@@ -50,9 +50,16 @@ export function dateFraction(date, year) {
   return Math.max(0, Math.min(1, (date - start) / total))
 }
 
-export function calculateSchedule(plant, year, actualSowingDateStr = null) {
-  const idealSowStart = isoWeekToDate(year, plant.idealSowingWeeks[0])
-  const idealSowEnd   = isoWeekToDate(year, plant.idealSowingWeeks[1])
+// variety: optional variety object from plant.varieties[] – overrides base plant values
+export function calculateSchedule(plant, year, actualSowingDateStr = null, variety = null) {
+  const sowingWeeks      = variety?.idealSowingWeeks  ?? plant.idealSowingWeeks
+  const daysToTransplant = plant.daysToTransplant  // varieties don't change indoor phase
+  const daysToHarvest    = variety?.daysToFirstHarvest  ?? plant.daysToFirstHarvest
+  const harvestDuration  = variety?.harvestDurationDays ?? plant.harvestDurationDays
+  const lastFrostWeek    = plant.lastFrostWeek
+
+  const idealSowStart = isoWeekToDate(year, sowingWeeks[0])
+  const idealSowEnd   = isoWeekToDate(year, sowingWeeks[1])
   const idealSowMid   = new Date((idealSowStart.getTime() + idealSowEnd.getTime()) / 2)
 
   const sowingDate = actualSowingDateStr ? parseDateInput(actualSowingDateStr) : idealSowMid
@@ -60,20 +67,21 @@ export function calculateSchedule(plant, year, actualSowingDateStr = null) {
   let transplantingDate = null
   let firstHarvestDate  = null
 
-  if (plant.daysToTransplant > 0) {
-    let tp = addDays(sowingDate, plant.daysToTransplant)
-    // Respect last frost week
-    if (plant.lastFrostWeek) {
-      const frostDate = isoWeekToDate(year, plant.lastFrostWeek)
+  if (daysToTransplant > 0) {
+    let tp = addDays(sowingDate, daysToTransplant)
+    if (lastFrostWeek) {
+      const frostDate = isoWeekToDate(year, lastFrostWeek)
       if (tp < frostDate) tp = frostDate
     }
     transplantingDate = tp
-    firstHarvestDate = addDays(transplantingDate, plant.daysToFirstHarvest)
+    firstHarvestDate  = addDays(transplantingDate, daysToHarvest)
   } else {
-    firstHarvestDate = addDays(sowingDate, plant.daysToFirstHarvest)
+    firstHarvestDate = addDays(sowingDate, daysToHarvest)
   }
 
-  const lastHarvestDate = addDays(firstHarvestDate, plant.harvestDurationDays)
+  const lastHarvestDate = addDays(firstHarvestDate, harvestDuration)
+
+  const displayName = variety ? `${plant.name} (${variety.name})` : plant.name
 
   const fertilizationEvents = plant.fertilization.map(f => {
     const base = f.event === 'sowing'        ? sowingDate
@@ -81,18 +89,17 @@ export function calculateSchedule(plant, year, actualSowingDateStr = null) {
                : firstHarvestDate
     return {
       ...f,
-      date:      addDays(base, f.daysOffset),
-      plantId:   plant.id,
-      plantName: plant.name,
-      plantColor:plant.color,
+      date:       addDays(base, f.daysOffset),
+      plantId:    plant.id,
+      plantName:  displayName,
+      plantColor: plant.color,
     }
-  }).filter(f => {
-    const y = f.date.getFullYear()
-    return y === year
-  })
+  }).filter(f => f.date.getFullYear() === year)
 
   return {
     plant,
+    variety,
+    displayName,
     sowingDate,
     transplantingDate,
     firstHarvestDate,

@@ -7,14 +7,26 @@
           v-for="plant in plantsByCategory(cat)"
           :key="plant.id"
           class="plant-card"
-          :class="{ selected: isSelected(plant.id) }"
-          :style="isSelected(plant.id) ? `--card-color: ${plant.color}` : ''"
-          @click="togglePlant(plant)"
+          :class="{ selected: countFor(plant.id) > 0 }"
+          :style="countFor(plant.id) > 0 ? `--card-color: ${plant.color}` : ''"
+          :title="plant.varieties ? 'Mehrere Sorten wählbar' : plant.name"
+          @click="handleClick(plant)"
         >
           <span class="plant-icon">{{ plant.icon }}</span>
           <span class="plant-name">{{ plant.name }}</span>
           <span class="plant-season">KW {{ plant.idealSowingWeeks[0] }}–{{ plant.idealSowingWeeks[1] }}</span>
-          <span v-if="isSelected(plant.id)" class="check-mark">✓</span>
+
+          <!-- Variety indicator -->
+          <span v-if="plant.varieties" class="variety-hint" :title="`${plant.varieties.length} Sorten verfügbar`">
+            {{ plant.varieties.length }} Sorten
+          </span>
+
+          <!-- Count badge for variety-plants (shows how many added) -->
+          <span v-if="plant.varieties && countFor(plant.id) > 0" class="count-badge">
+            {{ countFor(plant.id) }}×
+          </span>
+          <!-- Checkmark for non-variety plants -->
+          <span v-else-if="!plant.varieties && countFor(plant.id) > 0" class="check-mark">✓</span>
         </button>
       </div>
     </div>
@@ -22,7 +34,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { plants, CATEGORIES } from '../data/plants.js'
 
 const props = defineProps({
@@ -34,15 +45,25 @@ function plantsByCategory(cat) {
   return plants.filter(p => p.category === cat)
 }
 
-function isSelected(id) {
-  return props.modelValue.some(e => e.plantId === id)
+function countFor(plantId) {
+  return props.modelValue.filter(e => e.plantId === plantId).length
 }
 
-function togglePlant(plant) {
-  if (isSelected(plant.id)) {
-    emit('update:modelValue', props.modelValue.filter(e => e.plantId !== plant.id))
+function newEntry(plantId) {
+  return { id: `${plantId}-${Date.now()}`, plantId, varietyId: null, actualSowingDate: '' }
+}
+
+function handleClick(plant) {
+  if (plant.varieties) {
+    // Always add a new entry – multiple varieties allowed
+    emit('update:modelValue', [...props.modelValue, newEntry(plant.id)])
   } else {
-    emit('update:modelValue', [...props.modelValue, { plantId: plant.id, actualSowingDate: '' }])
+    // Toggle: add or remove the single entry
+    if (countFor(plant.id) > 0) {
+      emit('update:modelValue', props.modelValue.filter(e => e.plantId !== plant.id))
+    } else {
+      emit('update:modelValue', [...props.modelValue, newEntry(plant.id)])
+    }
   }
 }
 </script>
@@ -71,7 +92,7 @@ function togglePlant(plant) {
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.5rem 0.55rem;
   border: 2px solid var(--green-200);
   border-radius: 10px;
   background: white;
@@ -96,6 +117,16 @@ function togglePlant(plant) {
 .plant-name { font-size: 0.82rem; font-weight: 600; color: var(--gray-800); }
 .plant-season { font-size: 0.7rem; color: var(--gray-400); }
 
+.variety-hint {
+  font-size: 0.62rem;
+  color: var(--green-700);
+  background: var(--green-100);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
 .check-mark {
   position: absolute;
   top: 0.35rem;
@@ -103,5 +134,18 @@ function togglePlant(plant) {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--card-color, var(--green-600));
+}
+
+.count-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.3rem;
+  background: var(--card-color, var(--green-600));
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  line-height: 1.3;
 }
 </style>

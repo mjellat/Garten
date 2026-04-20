@@ -1,37 +1,102 @@
 <template>
   <div class="date-panel">
-    <div v-for="entry in modelValue" :key="entry.plantId" class="plant-entry">
+    <div v-for="entry in modelValue" :key="entry.id" class="plant-entry">
+      <!-- Entry header -->
       <div class="plant-header" :style="`--c: ${getPlant(entry.plantId).color}`">
         <span class="plant-icon">{{ getPlant(entry.plantId).icon }}</span>
-        <span class="plant-name">{{ getPlant(entry.plantId).name }}</span>
-        <span class="sowing-type-badge">{{ sowingTypeLabel(entry.plantId) }}</span>
-        <button class="remove-btn" @click="remove(entry.plantId)" title="Entfernen">✕</button>
+        <div class="plant-header-names">
+          <span class="plant-name">{{ getPlant(entry.plantId).name }}</span>
+          <span v-if="getVariety(entry)" class="variety-name-small">{{ getVariety(entry).name }}</span>
+        </div>
+        <button class="remove-btn" @click="remove(entry.id)" title="Entfernen">✕</button>
       </div>
 
-      <div class="dates-row">
+      <!-- Variety picker (only for plants with varieties AND no variety selected yet) -->
+      <div v-if="getPlant(entry.plantId).varieties && !entry.varietyId" class="variety-picker">
+        <p class="variety-picker-hint">Wähle eine Sorte:</p>
+        <div class="variety-grid">
+          <button
+            v-for="v in getPlant(entry.plantId).varieties"
+            :key="v.id"
+            class="variety-card"
+            @click="setVariety(entry.id, v.id)"
+          >
+            <div class="vc-top">
+              <span class="vc-name">{{ v.name }}</span>
+              <div class="vc-badges">
+                <span class="badge badge-type">{{ v.type }}</span>
+                <span v-if="v.isF1" class="badge badge-f1">F1</span>
+                <span v-if="v.isParthenocarpic" class="badge badge-partheno">Parthenokarp</span>
+                <span v-if="v.isSeedFast" class="badge badge-seed">Samenfest</span>
+              </div>
+            </div>
+            <div class="vc-facts">
+              <span class="vc-fact">🏡 {{ v.cultivation }}</span>
+              <span class="vc-fact">📏 {{ v.fruit.length }}</span>
+              <span class="vc-fact">🎨 {{ v.fruit.color }}</span>
+              <span v-if="v.resistances.length" class="vc-fact">🛡 {{ v.resistances.join(', ') }}</span>
+            </div>
+            <div class="vc-chars">
+              <span v-for="c in v.characteristics" :key="c" class="vc-char">{{ c }}</span>
+            </div>
+            <p class="vc-notes">{{ v.notes }}</p>
+          </button>
+        </div>
+        <button class="btn-no-variety" @click="setVariety(entry.id, '__none__')">
+          Ohne Sortenangabe fortfahren
+        </button>
+      </div>
+
+      <!-- Variety info strip (when variety is selected) -->
+      <div
+        v-if="getPlant(entry.plantId).varieties && entry.varietyId && entry.varietyId !== '__none__'"
+        class="variety-info-strip"
+        :style="`--c: ${getPlant(entry.plantId).color}`"
+      >
+        <div class="vis-left">
+          <div class="vis-badges">
+            <span class="badge badge-type">{{ getVariety(entry).type }}</span>
+            <span v-if="getVariety(entry).isF1" class="badge badge-f1">F1</span>
+            <span v-if="getVariety(entry).isParthenocarpic" class="badge badge-partheno">Parthenokarp</span>
+            <span v-if="getVariety(entry).isSeedFast" class="badge badge-seed">Samenfest</span>
+          </div>
+          <div class="vis-facts">
+            <span>🏡 {{ getVariety(entry).cultivation }}</span>
+            <span>📏 {{ getVariety(entry).fruit.length }}</span>
+            <span v-if="getVariety(entry).resistances.length">🛡 {{ getVariety(entry).resistances.join(', ') }}</span>
+          </div>
+          <p v-if="getVariety(entry).tip" class="vis-tip">💡 {{ getVariety(entry).tip }}</p>
+        </div>
+        <button class="btn-change-variety" @click="clearVariety(entry.id)">Sorte ändern</button>
+      </div>
+
+      <!-- Date inputs and schedule preview (shown once variety is chosen OR no varieties) -->
+      <div
+        v-if="!getPlant(entry.plantId).varieties || entry.varietyId"
+        class="dates-row"
+      >
         <div class="date-field">
           <label>
             Ideales Aussaatfenster
-            <span class="ideal-range">{{ idealRange(entry.plantId) }}</span>
+            <span class="ideal-range">{{ idealRange(entry) }}</span>
           </label>
         </div>
 
         <div class="date-field">
-          <label for="sow-{{ entry.plantId }}">Tatsächlicher Aussaattermin</label>
+          <label :for="`sow-${entry.id}`">Tatsächlicher Aussaattermin</label>
           <div class="input-row">
             <input
               type="date"
-              :id="`sow-${entry.plantId}`"
+              :id="`sow-${entry.id}`"
               :value="entry.actualSowingDate"
               :min="`${year}-01-01`"
               :max="`${year}-12-31`"
-              @change="updateDate(entry.plantId, $event.target.value)"
+              @change="updateDate(entry.id, $event.target.value)"
             />
             <button
               v-if="entry.actualSowingDate"
               class="clear-btn"
-              @click="updateDate(entry.plantId, '')"
-              title="Auf Idealtermin zurücksetzen"
+              @click="updateDate(entry.id, '')"
             >Ideal verwenden</button>
           </div>
         </div>
@@ -46,6 +111,13 @@
       </div>
     </div>
 
+    <!-- Add another variety button (shown when last entry is a variety-plant) -->
+    <div v-if="canAddMore" class="add-more-row">
+      <button class="btn-add-more" @click="addAnother">
+        + Weitere {{ lastVarietyPlant.name }}-Sorte hinzufügen
+      </button>
+    </div>
+
     <div v-if="modelValue.length === 0" class="empty-hint">
       Wähle links Pflanzen aus, um sie zum Plan hinzuzufügen.
     </div>
@@ -55,7 +127,7 @@
 <script setup>
 import { computed } from 'vue'
 import { plants } from '../data/plants.js'
-import { calculateSchedule, formatDate, formatDateForInput, isoWeekToDate } from '../utils/dates.js'
+import { calculateSchedule, formatDate, isoWeekToDate } from '../utils/dates.js'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
@@ -63,46 +135,77 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
-function getPlant(id) {
-  return plants.find(p => p.id === id)
+function getPlant(plantId) {
+  return plants.find(p => p.id === plantId)
 }
 
-function sowingTypeLabel(id) {
-  const types = { indoor: 'Anzucht indoor', outdoor: 'Direktsaat', both: 'Indoor/Outdoor' }
-  return types[getPlant(id).sowingType] ?? ''
+function getVariety(entry) {
+  if (!entry.varietyId || entry.varietyId === '__none__') return null
+  return getPlant(entry.plantId).varieties?.find(v => v.id === entry.varietyId) ?? null
 }
 
-function idealRange(id) {
-  const plant = getPlant(id)
-  const start = isoWeekToDate(props.year, plant.idealSowingWeeks[0])
-  const end   = isoWeekToDate(props.year, plant.idealSowingWeeks[1])
-  return `${formatDate(start)} – ${formatDate(end)} (KW ${plant.idealSowingWeeks[0]}–${plant.idealSowingWeeks[1]})`
+function idealRange(entry) {
+  const plant   = getPlant(entry.plantId)
+  const variety = getVariety(entry)
+  const weeks   = variety?.idealSowingWeeks ?? plant.idealSowingWeeks
+  const start   = isoWeekToDate(props.year, weeks[0])
+  const end     = isoWeekToDate(props.year, weeks[1])
+  return `${formatDate(start)} – ${formatDate(end)} (KW ${weeks[0]}–${weeks[1]})`
 }
 
 function getScheduleItems(entry) {
-  const plant = getPlant(entry.plantId)
-  const s = calculateSchedule(plant, props.year, entry.actualSowingDate)
-  const items = [
-    { label: 'Aussaat',      date: formatDate(s.sowingDate),        color: '#f97316' },
-  ]
+  const plant   = getPlant(entry.plantId)
+  const variety = getVariety(entry)
+  const s = calculateSchedule(plant, props.year, entry.actualSowingDate || null, variety)
+  const items = [{ label: 'Aussaat', date: formatDate(s.sowingDate), color: '#f97316' }]
   if (s.transplantingDate) {
     items.push({ label: 'Auspflanzen', date: formatDate(s.transplantingDate), color: '#16a34a' })
   }
   items.push(
-    { label: 'Erste Ernte', date: formatDate(s.firstHarvestDate),  color: '#dc2626' },
-    { label: 'Letzte Ernte',date: formatDate(s.lastHarvestDate),   color: '#991b1b' },
+    { label: 'Erste Ernte', date: formatDate(s.firstHarvestDate), color: '#dc2626' },
+    { label: 'Letzte Ernte',date: formatDate(s.lastHarvestDate),  color: '#991b1b' },
   )
   return items
 }
 
-function updateDate(plantId, val) {
+// Show "add another variety" button if the last entry belongs to a variety-plant
+const lastVarietyPlant = computed(() => {
+  if (props.modelValue.length === 0) return null
+  const last = props.modelValue[props.modelValue.length - 1]
+  const plant = getPlant(last.plantId)
+  return plant.varieties ? plant : null
+})
+
+const canAddMore = computed(() => !!lastVarietyPlant.value)
+
+function addAnother() {
+  const plant = lastVarietyPlant.value
+  emit('update:modelValue', [
+    ...props.modelValue,
+    { id: `${plant.id}-${Date.now()}`, plantId: plant.id, varietyId: null, actualSowingDate: '' },
+  ])
+}
+
+function setVariety(entryId, varietyId) {
   emit('update:modelValue', props.modelValue.map(e =>
-    e.plantId === plantId ? { ...e, actualSowingDate: val } : e
+    e.id === entryId ? { ...e, varietyId } : e
   ))
 }
 
-function remove(plantId) {
-  emit('update:modelValue', props.modelValue.filter(e => e.plantId !== plantId))
+function clearVariety(entryId) {
+  emit('update:modelValue', props.modelValue.map(e =>
+    e.id === entryId ? { ...e, varietyId: null } : e
+  ))
+}
+
+function updateDate(entryId, val) {
+  emit('update:modelValue', props.modelValue.map(e =>
+    e.id === entryId ? { ...e, actualSowingDate: val } : e
+  ))
+}
+
+function remove(entryId) {
+  emit('update:modelValue', props.modelValue.filter(e => e.id !== entryId))
 }
 </script>
 
@@ -116,115 +219,166 @@ function remove(plantId) {
   background: white;
 }
 
+/* Header */
 .plant-header {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.6rem 1rem;
-  background: color-mix(in srgb, var(--c) 12%, white);
-  border-bottom: 1px solid color-mix(in srgb, var(--c) 20%, transparent);
+  background: color-mix(in srgb, var(--c) 10%, white);
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 18%, transparent);
 }
-
-.plant-icon { font-size: 1.3rem; }
-.plant-name { font-weight: 700; font-size: 0.95rem; flex: 1; }
-
-.sowing-type-badge {
-  font-size: 0.72rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--c) 20%, white);
-  color: color-mix(in srgb, var(--c) 80%, #000);
-  font-weight: 600;
-}
+.plant-icon { font-size: 1.3rem; flex-shrink: 0; }
+.plant-header-names { flex: 1; display: flex; flex-direction: column; gap: 0.05rem; }
+.plant-name { font-weight: 700; font-size: 0.95rem; color: var(--gray-800); }
+.variety-name-small { font-size: 0.78rem; color: color-mix(in srgb, var(--c) 70%, #000); font-weight: 600; }
 
 .remove-btn {
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: var(--gray-400);
-  font-size: 0.9rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  cursor: pointer;
+  background: none; border: none; color: var(--gray-400);
+  font-size: 0.9rem; padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
 .remove-btn:hover { color: var(--red); background: #fee2e2; }
 
+/* Variety picker */
+.variety-picker { padding: 1rem; background: var(--green-50); }
+.variety-picker-hint { font-size: 0.8rem; font-weight: 700; color: var(--green-800); margin-bottom: 0.7rem; }
+
+.variety-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.variety-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.8rem 0.9rem;
+  background: white;
+  border: 2px solid var(--green-200);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.variety-card:hover {
+  border-color: var(--green-500);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+.vc-top { display: flex; flex-direction: column; gap: 0.3rem; }
+.vc-name { font-weight: 700; font-size: 0.9rem; color: var(--gray-800); }
+.vc-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.badge {
+  font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem;
+  border-radius: 10px; letter-spacing: 0.02em;
+}
+.badge-type     { background: #e0f2fe; color: #0369a1; }
+.badge-f1       { background: #fef9c3; color: #a16207; }
+.badge-partheno { background: #f3e8ff; color: #7e22ce; }
+.badge-seed     { background: #dcfce7; color: #15803d; }
+
+.vc-facts {
+  display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem;
+  font-size: 0.72rem; color: var(--gray-600);
+}
+.vc-chars { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.vc-char {
+  font-size: 0.65rem; background: var(--green-100); color: var(--green-800);
+  padding: 0.1rem 0.4rem; border-radius: 4px;
+}
+.vc-notes {
+  font-size: 0.72rem; color: var(--gray-500); line-height: 1.4;
+  margin-top: 0.1rem;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.btn-no-variety {
+  font-size: 0.78rem; color: var(--gray-500); background: none;
+  border: 1px dashed var(--gray-400); border-radius: 6px;
+  padding: 0.35rem 0.8rem; cursor: pointer;
+}
+.btn-no-variety:hover { color: var(--gray-700); border-color: var(--gray-600); }
+
+/* Variety info strip */
+.variety-info-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, var(--c) 6%, white);
+  border-bottom: 1px solid color-mix(in srgb, var(--c) 15%, transparent);
+}
+.vis-left { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; }
+.vis-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.vis-facts { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.75rem; color: var(--gray-600); }
+.vis-tip { font-size: 0.73rem; color: var(--green-700); font-style: italic; }
+
+.btn-change-variety {
+  flex-shrink: 0; font-size: 0.72rem; padding: 0.3rem 0.7rem;
+  border: 1px solid var(--green-300); border-radius: 5px;
+  background: white; color: var(--green-700); cursor: pointer;
+}
+.btn-change-variety:hover { background: var(--green-50); }
+
+/* Date fields */
 .dates-row {
   padding: 0.8rem 1rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem 1.5rem;
 }
-
 .date-field { display: flex; flex-direction: column; gap: 0.35rem; }
-
 .date-field label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--gray-600);
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  font-size: 0.78rem; font-weight: 600; color: var(--gray-600);
+  display: flex; flex-direction: column; gap: 0.2rem;
 }
-
-.ideal-range {
-  font-weight: 400;
-  color: var(--green-700);
-  font-size: 0.8rem;
-}
+.ideal-range { font-weight: 400; color: var(--green-700); font-size: 0.8rem; }
 
 .input-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-
 input[type="date"] {
-  padding: 0.4rem 0.6rem;
-  border: 1.5px solid var(--green-200);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  color: var(--gray-800);
-  outline: none;
-  transition: border-color 0.15s;
+  padding: 0.4rem 0.6rem; border: 1.5px solid var(--green-200);
+  border-radius: 6px; font-size: 0.85rem; color: var(--gray-800);
+  outline: none; transition: border-color 0.15s;
 }
 input[type="date"]:focus { border-color: var(--green-600); }
 
 .clear-btn {
-  font-size: 0.72rem;
-  padding: 0.3rem 0.6rem;
-  border: 1px solid var(--green-300);
-  border-radius: 5px;
-  background: var(--green-50);
-  color: var(--green-800);
-  cursor: pointer;
+  font-size: 0.72rem; padding: 0.3rem 0.6rem;
+  border: 1px solid var(--green-300); border-radius: 5px;
+  background: var(--green-50); color: var(--green-800); cursor: pointer;
 }
 .clear-btn:hover { background: var(--green-100); }
 
 .schedule-preview {
   grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem;
   padding-top: 0.25rem;
   border-top: 1px dashed var(--green-200);
 }
-
 .sched-item { display: flex; align-items: center; gap: 0.4rem; }
-
-.sched-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
+.sched-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .sched-label { font-size: 0.75rem; color: var(--gray-600); }
-.sched-date  { font-size: 0.8rem;  font-weight: 600; color: var(--gray-800); }
+.sched-date  { font-size: 0.8rem; font-weight: 600; color: var(--gray-800); }
 
+/* Add more button */
+.add-more-row { display: flex; justify-content: flex-start; }
+.btn-add-more {
+  font-size: 0.82rem; font-weight: 600; padding: 0.5rem 1rem;
+  border: 2px dashed var(--green-400); border-radius: 8px;
+  background: var(--green-50); color: var(--green-700);
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-add-more:hover { background: var(--green-100); border-color: var(--green-600); }
+
+/* Empty state */
 .empty-hint {
-  padding: 2rem;
-  text-align: center;
-  color: var(--gray-400);
-  font-size: 0.9rem;
-  border: 2px dashed var(--green-200);
-  border-radius: 10px;
+  padding: 2rem; text-align: center; color: var(--gray-400);
+  font-size: 0.9rem; border: 2px dashed var(--green-200); border-radius: 10px;
 }
 </style>

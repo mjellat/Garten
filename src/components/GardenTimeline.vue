@@ -91,7 +91,7 @@
             font-size="12"
             font-weight="600"
             :fill="s.plant.color"
-          >{{ s.plant.icon }} {{ s.plant.name }}</text>
+          >{{ s.plant.icon }} {{ s.displayName }}</text>
 
           <!-- Ideal sowing window (light background) -->
           <rect

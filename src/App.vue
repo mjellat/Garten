@@ -107,6 +107,8 @@ import { calculateSchedule } from './utils/dates.js'
 
 const year = ref(new Date().getFullYear())
 const activeTab = ref('plan')
+
+// Entry shape: { id: string, plantId: string, varietyId: string|null, actualSowingDate: string }
 const selectedEntries = ref([])
 
 const tabs = [
@@ -118,8 +120,14 @@ const tabs = [
 
 const schedules = computed(() =>
   selectedEntries.value.map(entry => {
-    const plant = plants.find(p => p.id === entry.plantId)
-    return calculateSchedule(plant, year.value, entry.actualSowingDate || null)
+    const plant   = plants.find(p => p.id === entry.plantId)
+    const variety = entry.varietyId
+      ? plant.varieties?.find(v => v.id === entry.varietyId) ?? null
+      : null
+    return {
+      ...calculateSchedule(plant, year.value, entry.actualSowingDate || null, variety),
+      entryId: entry.id,
+    }
   })
 )
 </script>
