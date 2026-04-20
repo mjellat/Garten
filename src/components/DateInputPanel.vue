@@ -3,12 +3,13 @@
     <div v-for="entry in modelValue" :key="entry.id" class="plant-entry">
       <!-- Entry header -->
       <div class="plant-header" :style="`--c: ${getPlant(entry.plantId).color}`">
-        <span class="plant-icon">{{ getPlant(entry.plantId).icon }}</span>
         <div class="plant-header-names">
           <span class="plant-name">{{ getPlant(entry.plantId).name }}</span>
           <span v-if="getVariety(entry)" class="variety-name-small">{{ getVariety(entry).name }}</span>
         </div>
-        <button class="remove-btn" @click="remove(entry.id)" title="Entfernen">✕</button>
+        <button class="remove-btn btn btn-sm" type="button" @click="remove(entry.id)" title="Entfernen">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
       </div>
 
       <!-- Variety picker (only for plants with varieties AND no variety selected yet) -->
@@ -18,7 +19,8 @@
           <button
             v-for="v in getPlant(entry.plantId).varieties"
             :key="v.id"
-            class="variety-card"
+            class="variety-card btn"
+            type="button"
             @click="setVariety(entry.id, v.id)"
           >
             <div class="vc-top">
@@ -31,10 +33,10 @@
               </div>
             </div>
             <div class="vc-facts">
-              <span class="vc-fact">🏡 {{ v.cultivation }}</span>
-              <span class="vc-fact">📏 {{ v.fruit.length }}</span>
-              <span class="vc-fact">🎨 {{ v.fruit.color }}</span>
-              <span v-if="v.resistances.length" class="vc-fact">🛡 {{ v.resistances.join(', ') }}</span>
+              <span class="vc-fact"><i class="bi bi-house" aria-hidden="true"></i> {{ v.cultivation }}</span>
+              <span class="vc-fact"><i class="bi bi-rulers" aria-hidden="true"></i> {{ v.fruit.length }}</span>
+              <span class="vc-fact"><i class="bi bi-palette" aria-hidden="true"></i> {{ v.fruit.color }}</span>
+              <span v-if="v.resistances.length" class="vc-fact"><i class="bi bi-shield-check" aria-hidden="true"></i> {{ v.resistances.join(', ') }}</span>
             </div>
             <div class="vc-chars">
               <span v-for="c in v.characteristics" :key="c" class="vc-char">{{ c }}</span>
@@ -42,7 +44,7 @@
             <p class="vc-notes">{{ v.notes }}</p>
           </button>
         </div>
-        <button class="btn-no-variety" @click="setVariety(entry.id, '__none__')">
+        <button class="btn-no-variety btn btn-sm" type="button" @click="setVariety(entry.id, '__none__')">
           Ohne Sortenangabe fortfahren
         </button>
       </div>
@@ -61,13 +63,13 @@
             <span v-if="getVariety(entry).isSeedFast" class="badge badge-seed">Samenfest</span>
           </div>
           <div class="vis-facts">
-            <span>🏡 {{ getVariety(entry).cultivation }}</span>
-            <span>📏 {{ getVariety(entry).fruit.length }}</span>
-            <span v-if="getVariety(entry).resistances.length">🛡 {{ getVariety(entry).resistances.join(', ') }}</span>
+            <span><i class="bi bi-house" aria-hidden="true"></i> {{ getVariety(entry).cultivation }}</span>
+            <span><i class="bi bi-rulers" aria-hidden="true"></i> {{ getVariety(entry).fruit.length }}</span>
+            <span v-if="getVariety(entry).resistances.length"><i class="bi bi-shield-check" aria-hidden="true"></i> {{ getVariety(entry).resistances.join(', ') }}</span>
           </div>
-          <p v-if="getVariety(entry).tip" class="vis-tip">💡 {{ getVariety(entry).tip }}</p>
+          <p v-if="getVariety(entry).tip" class="vis-tip"><i class="bi bi-lightbulb" aria-hidden="true"></i> {{ getVariety(entry).tip }}</p>
         </div>
-        <button class="btn-change-variety" @click="clearVariety(entry.id)">Sorte ändern</button>
+        <button class="btn-change-variety btn btn-sm" type="button" @click="clearVariety(entry.id)">Sorte ändern</button>
       </div>
 
       <!-- Date inputs and schedule preview (shown once variety is chosen OR no varieties) -->
@@ -87,6 +89,7 @@
           <div class="input-row">
             <input
               type="date"
+              class="form-control"
               :id="`sow-${entry.id}`"
               :value="entry.actualSowingDate"
               :min="`${year}-01-01`"
@@ -95,7 +98,8 @@
             />
             <button
               v-if="entry.actualSowingDate"
-              class="clear-btn"
+              class="clear-btn btn btn-sm"
+              type="button"
               @click="updateDate(entry.id, '')"
             >Ideal verwenden</button>
           </div>
@@ -113,8 +117,8 @@
 
     <!-- Add another variety button (shown when last entry is a variety-plant) -->
     <div v-if="canAddMore" class="add-more-row">
-      <button class="btn-add-more" @click="addAnother">
-        + Weitere {{ lastVarietyPlant.name }}-Sorte hinzufügen
+      <button class="btn-add-more btn btn-sm" type="button" @click="addAnother">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Weitere {{ lastVarietyPlant.name }}-Sorte hinzufügen
       </button>
     </div>
 
@@ -182,7 +186,7 @@ function addAnother() {
   const plant = lastVarietyPlant.value
   emit('update:modelValue', [
     ...props.modelValue,
-    { id: `${plant.id}-${Date.now()}`, plantId: plant.id, varietyId: null, actualSowingDate: '' },
+    { id: `${plant.id}-${crypto.randomUUID()}`, plantId: plant.id, varietyId: null, actualSowingDate: '' },
   ])
 }
 
@@ -213,10 +217,11 @@ function remove(entryId) {
 .date-panel { display: flex; flex-direction: column; gap: 1rem; }
 
 .plant-entry {
-  border: 1px solid var(--green-200);
+  border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-  background: white;
+  background: var(--surface);
+  box-shadow: 0 10px 26px rgba(30, 56, 38, 0.06);
 }
 
 /* Header */
@@ -224,25 +229,24 @@ function remove(entryId) {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem 1rem;
+  padding: 0.75rem 1rem;
   background: color-mix(in srgb, var(--c) 10%, white);
   border-bottom: 1px solid color-mix(in srgb, var(--c) 18%, transparent);
 }
-.plant-icon { font-size: 1.3rem; flex-shrink: 0; }
 .plant-header-names { flex: 1; display: flex; flex-direction: column; gap: 0.05rem; }
 .plant-name { font-weight: 700; font-size: 0.95rem; color: var(--gray-800); }
 .variety-name-small { font-size: 0.78rem; color: color-mix(in srgb, var(--c) 70%, #000); font-weight: 600; }
 
 .remove-btn {
-  background: none; border: none; color: var(--gray-400);
-  font-size: 0.9rem; padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer;
+  background: white; border: 1px solid color-mix(in srgb, var(--c) 18%, transparent); color: var(--gray-400);
+  font-size: 0.9rem; padding: 0.2rem 0.45rem; border-radius: 6px; cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
 .remove-btn:hover { color: var(--red); background: #fee2e2; }
 
 /* Variety picker */
-.variety-picker { padding: 1rem; background: var(--green-50); }
-.variety-picker-hint { font-size: 0.8rem; font-weight: 700; color: var(--green-800); margin-bottom: 0.7rem; }
+.variety-picker { padding: 1rem; background: linear-gradient(180deg, var(--green-50), white); }
+.variety-picker-hint { font-size: 0.78rem; font-weight: 600; color: var(--green-700); margin-bottom: 0.7rem; }
 
 .variety-grid {
   display: grid;
@@ -256,16 +260,16 @@ function remove(entryId) {
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.8rem 0.9rem;
-  background: white;
-  border: 2px solid var(--green-200);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
 }
 .variety-card:hover {
-  border-color: var(--green-500);
-  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  border-color: var(--green-400);
+  box-shadow: 0 3px 12px rgba(42,37,32,0.08);
   transform: translateY(-1px);
 }
 
@@ -275,7 +279,7 @@ function remove(entryId) {
 
 .badge {
   font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem;
-  border-radius: 10px; letter-spacing: 0.02em;
+  border-radius: 6px; letter-spacing: 0.02em;
 }
 .badge-type     { background: #e0f2fe; color: #0369a1; }
 .badge-f1       { background: #fef9c3; color: #a16207; }
@@ -298,8 +302,8 @@ function remove(entryId) {
 }
 
 .btn-no-variety {
-  font-size: 0.78rem; color: var(--gray-500); background: none;
-  border: 1px dashed var(--gray-400); border-radius: 6px;
+  font-size: 0.78rem; color: var(--gray-500); background: white;
+  border: 1px dashed var(--gray-400); border-radius: 8px;
   padding: 0.35rem 0.8rem; cursor: pointer;
 }
 .btn-no-variety:hover { color: var(--gray-700); border-color: var(--gray-600); }
@@ -321,7 +325,7 @@ function remove(entryId) {
 
 .btn-change-variety {
   flex-shrink: 0; font-size: 0.72rem; padding: 0.3rem 0.7rem;
-  border: 1px solid var(--green-300); border-radius: 5px;
+  border: 1px solid var(--green-300); border-radius: 8px;
   background: white; color: var(--green-700); cursor: pointer;
 }
 .btn-change-variety:hover { background: var(--green-50); }
@@ -342,15 +346,16 @@ function remove(entryId) {
 
 .input-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 input[type="date"] {
-  padding: 0.4rem 0.6rem; border: 1.5px solid var(--green-200);
-  border-radius: 6px; font-size: 0.85rem; color: var(--gray-800);
-  outline: none; transition: border-color 0.15s;
+  padding: 0.4rem 0.6rem; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 0.85rem; color: var(--gray-800);
+  outline: none; transition: border-color 0.15s; background: var(--surface);
+  max-width: 190px;
 }
-input[type="date"]:focus { border-color: var(--green-600); }
+input[type="date"]:focus { border-color: var(--green-400); }
 
 .clear-btn {
   font-size: 0.72rem; padding: 0.3rem 0.6rem;
-  border: 1px solid var(--green-300); border-radius: 5px;
+  border: 1px solid var(--green-300); border-radius: 8px;
   background: var(--green-50); color: var(--green-800); cursor: pointer;
 }
 .clear-btn:hover { background: var(--green-100); }
@@ -359,7 +364,7 @@ input[type="date"]:focus { border-color: var(--green-600); }
   grid-column: 1 / -1;
   display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem;
   padding-top: 0.25rem;
-  border-top: 1px dashed var(--green-200);
+  border-top: 1px dashed var(--border);
 }
 .sched-item { display: flex; align-items: center; gap: 0.4rem; }
 .sched-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -369,16 +374,22 @@ input[type="date"]:focus { border-color: var(--green-600); }
 /* Add more button */
 .add-more-row { display: flex; justify-content: flex-start; }
 .btn-add-more {
-  font-size: 0.82rem; font-weight: 600; padding: 0.5rem 1rem;
-  border: 2px dashed var(--green-400); border-radius: 8px;
+  font-size: 0.82rem; font-weight: 500; padding: 0.5rem 1rem;
+  border: 1px dashed var(--green-200); border-radius: 8px;
   background: var(--green-50); color: var(--green-700);
   cursor: pointer; transition: all 0.15s;
 }
-.btn-add-more:hover { background: var(--green-100); border-color: var(--green-600); }
+.btn-add-more:hover { background: var(--green-100); border-color: var(--green-400); }
 
 /* Empty state */
 .empty-hint {
   padding: 2rem; text-align: center; color: var(--gray-400);
-  font-size: 0.9rem; border: 2px dashed var(--green-200); border-radius: 10px;
+  font-size: 0.88rem; border: 1px dashed var(--border); border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+  .dates-row { grid-template-columns: 1fr; }
+  input[type="date"] { max-width: none; }
+  .variety-info-strip { flex-direction: column; }
 }
 </style>

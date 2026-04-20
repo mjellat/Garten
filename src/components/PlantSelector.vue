@@ -6,13 +6,12 @@
         <button
           v-for="plant in plantsByCategory(cat)"
           :key="plant.id"
-          class="plant-card"
+          class="plant-card btn"
           :class="{ selected: countFor(plant.id) > 0 }"
           :style="countFor(plant.id) > 0 ? `--card-color: ${plant.color}` : ''"
           :title="plant.varieties ? 'Mehrere Sorten wählbar' : plant.name"
           @click="handleClick(plant)"
         >
-          <span class="plant-icon">{{ plant.icon }}</span>
           <span class="plant-name">{{ plant.name }}</span>
           <span class="plant-season">KW {{ plant.idealSowingWeeks[0] }}–{{ plant.idealSowingWeeks[1] }}</span>
 
@@ -26,7 +25,9 @@
             {{ countFor(plant.id) }}×
           </span>
           <!-- Checkmark for non-variety plants -->
-          <span v-else-if="!plant.varieties && countFor(plant.id) > 0" class="check-mark">✓</span>
+          <span v-else-if="!plant.varieties && countFor(plant.id) > 0" class="check-mark">
+            <i class="bi bi-check-lg" aria-hidden="true"></i>
+          </span>
         </button>
       </div>
     </div>
@@ -50,7 +51,7 @@ function countFor(plantId) {
 }
 
 function newEntry(plantId) {
-  return { id: `${plantId}-${Date.now()}`, plantId, varietyId: null, actualSowingDate: '' }
+  return { id: `${plantId}-${crypto.randomUUID()}`, plantId, varietyId: null, actualSowingDate: '' }
 }
 
 function handleClick(plant) {
@@ -69,21 +70,21 @@ function handleClick(plant) {
 </script>
 
 <style scoped>
-.plant-selector { display: flex; flex-direction: column; gap: 1.5rem; }
+.plant-selector { display: flex; flex-direction: column; gap: 1.4rem; }
 
 .category-title {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--green-700);
+  letter-spacing: 0.1em;
+  color: var(--muted);
   margin-bottom: 0.6rem;
 }
 
 .plant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  gap: 0.65rem;
 }
 
 .plant-card {
@@ -92,36 +93,37 @@ function handleClick(plant) {
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.75rem 0.5rem 0.55rem;
-  border: 2px solid var(--green-200);
-  border-radius: 10px;
-  background: white;
-  transition: all 0.15s ease;
+  min-height: 126px;
+  padding: 0.85rem 0.65rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   cursor: pointer;
   text-align: center;
+  box-shadow: 0 10px 24px rgba(30, 56, 38, 0.06);
 }
 
 .plant-card:hover {
   border-color: var(--green-400);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(42,37,32,0.08);
 }
 
 .plant-card.selected {
   border-color: var(--card-color, var(--green-600));
-  background: color-mix(in srgb, var(--card-color, var(--green-600)) 10%, white);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--card-color, var(--green-600)) 30%, transparent);
+  background: color-mix(in srgb, var(--card-color, var(--green-600)) 9%, white);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--card-color, var(--green-600)) 20%, transparent);
 }
 
-.plant-icon { font-size: 1.75rem; line-height: 1; }
-.plant-name { font-size: 0.82rem; font-weight: 600; color: var(--gray-800); }
+.plant-name { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); }
 .plant-season { font-size: 0.7rem; color: var(--gray-400); }
 
 .variety-hint {
   font-size: 0.62rem;
   color: var(--green-700);
   background: var(--green-100);
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 0.1rem 0.35rem;
   font-weight: 600;
   margin-top: 0.1rem;

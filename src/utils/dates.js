@@ -40,7 +40,7 @@ export function parseDateInput(str) {
 }
 
 export function daysInYear(year) {
-  return new Date(year, 11, 31).getDate() === 31 ? 365 : 366
+  return new Date(year, 1, 29).getMonth() === 1 ? 366 : 365
 }
 
 // Returns fraction 0–1 of where `date` falls in `year`

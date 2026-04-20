@@ -8,7 +8,7 @@
       </span>
     </div>
 
-    <div class="timeline-scroll">
+    <div class="timeline-scroll table-responsive">
       <svg
         :viewBox="`0 0 ${W} ${svgHeight}`"
         :width="W"
@@ -23,7 +23,7 @@
           y="0"
           :width="m.widthFrac * CHART_W"
           :height="HEADER_H"
-          :fill="i % 2 === 0 ? '#f0faf4' : '#e8f5e9'"
+          :fill="i % 2 === 0 ? '#f0f5f0' : '#e8ede8'"
         />
 
         <!-- Month labels -->
@@ -35,7 +35,7 @@
           text-anchor="middle"
           font-size="11"
           font-weight="600"
-          fill="#4a9e40"
+          fill="#5c7a5c"
         >{{ m.name }}</text>
 
         <!-- Month dividers -->
@@ -46,12 +46,12 @@
           :x2="LEFT + m.xFrac * CHART_W"
           y1="0"
           :y2="svgHeight"
-          stroke="#c8e6c9"
+          stroke="#c4d5c4"
           stroke-width="0.5"
         />
 
         <!-- Header bottom line -->
-        <line :x1="LEFT" :x2="W - 8" :y1="HEADER_H" :y2="HEADER_H" stroke="#a5d6a7" stroke-width="1" />
+        <line :x1="LEFT" :x2="W - 8" :y1="HEADER_H" :y2="HEADER_H" stroke="#c4d5c4" stroke-width="1" />
 
         <!-- Today line -->
         <line
@@ -60,7 +60,7 @@
           :x2="LEFT + todayFrac * CHART_W"
           :y1="HEADER_H"
           :y2="svgHeight"
-          stroke="#ef4444"
+          stroke="#a85048"
           stroke-width="1.5"
           stroke-dasharray="4 3"
         />
@@ -69,18 +69,18 @@
           :x="LEFT + todayFrac * CHART_W + 3"
           :y="HEADER_H + 10"
           font-size="9"
-          fill="#ef4444"
+          fill="#a85048"
         >Heute</text>
 
         <!-- Plant rows -->
-        <g v-for="(s, ri) in schedules" :key="s.plant.id">
+        <g v-for="(s, ri) in schedules" :key="s.entryId">
           <!-- Row background -->
           <rect
             :x="0"
             :y="rowY(ri)"
             :width="W"
             :height="ROW_H"
-            :fill="ri % 2 === 0 ? 'white' : '#f9fffe'"
+            :fill="ri % 2 === 0 ? '#ffffff' : '#faf9f7'"
           />
 
           <!-- Plant label -->
@@ -91,7 +91,7 @@
             font-size="12"
             font-weight="600"
             :fill="s.plant.color"
-          >{{ s.plant.icon }} {{ s.displayName }}</text>
+          >{{ s.displayName }}</text>
 
           <!-- Ideal sowing window (light background) -->
           <rect
@@ -99,9 +99,9 @@
             :y="rowY(ri) + BAR_MARGIN"
             :width="Math.max(2, (dateFrac(s.idealSowEnd) - dateFrac(s.idealSowStart)) * CHART_W)"
             :height="BAR_H"
-            fill="#fed7aa"
+            fill="#d4b896"
             rx="3"
-            opacity="0.6"
+            opacity="0.55"
           />
 
           <!-- Sowing bar -->
@@ -110,7 +110,7 @@
             :y="rowY(ri) + BAR_MARGIN - 2"
             :width="8"
             :height="BAR_H + 4"
-            fill="#f97316"
+            fill="#c07030"
             rx="2"
           />
 
@@ -121,9 +121,9 @@
             :y="rowY(ri) + BAR_MARGIN"
             :width="Math.max(0, (dateFrac(s.transplantingDate) - dateFrac(s.sowingDate)) * CHART_W)"
             :height="BAR_H"
-            fill="#fbbf24"
+            fill="#c8a040"
             rx="3"
-            opacity="0.85"
+            opacity="0.8"
           />
 
           <!-- Growing phase (transplanting → first harvest) -->
@@ -134,7 +134,7 @@
             :height="BAR_H"
             :fill="s.plant.color"
             rx="3"
-            opacity="0.7"
+            opacity="0.65"
           />
 
           <!-- Harvest bar -->
@@ -143,9 +143,9 @@
             :y="rowY(ri) + BAR_MARGIN"
             :width="Math.max(0, (dateFrac(s.lastHarvestDate) - dateFrac(s.firstHarvestDate)) * CHART_W)"
             :height="BAR_H"
-            fill="#dc2626"
+            fill="#a85048"
             rx="3"
-            opacity="0.8"
+            opacity="0.75"
           />
 
           <!-- Fertilization markers -->
@@ -173,7 +173,7 @@
           :x2="W"
           :y1="rowY(ri + 1)"
           :y2="rowY(ri + 1)"
-          stroke="#e5f5ea"
+          stroke="#e5e0d8"
           stroke-width="1"
         />
       </svg>
@@ -270,13 +270,13 @@ function showTooltip(event, f) {
 function hideTooltip() { tooltip.visible = false }
 
 const legend = [
-  { label: 'Ideales Aussaatfenster', color: '#fed7aa', opacity: 0.9 },
-  { label: 'Aussaatpunkt',           color: '#f97316' },
-  { label: 'Anzucht / Jungpflanze',  color: '#fbbf24' },
-  { label: 'Wachstum',               color: '#16a34a', opacity: 0.7 },
-  { label: 'Ernte',                  color: '#dc2626', opacity: 0.8 },
-  { label: 'Düngung (Marker)',        color: '#1e40af' },
-  { label: 'Heute',                  color: '#ef4444' },
+  { label: 'Ideales Aussaatfenster', color: '#d4b896', opacity: 0.9 },
+  { label: 'Aussaatpunkt',           color: '#c07030' },
+  { label: 'Anzucht / Jungpflanze',  color: '#c8a040' },
+  { label: 'Wachstum',               color: '#5c7a5c', opacity: 0.7 },
+  { label: 'Ernte',                  color: '#a85048', opacity: 0.8 },
+  { label: 'Düngung (Marker)',        color: '#4a6fa5' },
+  { label: 'Heute',                  color: '#a85048' },
 ]
 </script>
 
@@ -289,7 +289,7 @@ const legend = [
   gap: 0.6rem 1.2rem;
   margin-bottom: 1rem;
   font-size: 0.78rem;
-  color: var(--gray-600);
+  color: var(--muted);
 }
 
 .legend-item { display: flex; align-items: center; gap: 0.35rem; }
@@ -297,15 +297,16 @@ const legend = [
 .legend-swatch {
   width: 14px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
 .timeline-scroll {
   overflow-x: auto;
-  border: 1px solid var(--green-200);
+  border: 1px solid var(--border);
   border-radius: 10px;
   background: white;
+  box-shadow: 0 12px 32px rgba(30, 56, 38, 0.08);
 }
 
 .timeline-svg { display: block; }

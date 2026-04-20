@@ -1,6 +1,6 @@
 <template>
   <div class="fert-schedule">
-    <div v-if="allEvents.length === 0" class="empty-state">
+    <div v-if="allEvents.length === 0" class="empty-state alert alert-light">
       Keine Pflanzen ausgewählt. Gehe zu "Planung" um Pflanzen hinzuzufügen.
     </div>
 
@@ -20,10 +20,10 @@
 
             <div class="event-body">
               <div class="event-top">
-                <span class="plant-badge" :style="`--c: ${ev.plantColor}`">
-                  {{ getPlant(ev.plantId).icon }} {{ ev.plantName }}
+                <span class="plant-badge badge" :style="`--c: ${ev.plantColor}`">
+                  {{ ev.plantName }}
                 </span>
-                <span class="fert-type-badge" :style="`color:${typeInfo(ev.type).color}; background:${typeInfo(ev.type).bg}`">
+                <span class="fert-type-badge badge" :style="`color:${typeInfo(ev.type).color}; background:${typeInfo(ev.type).bg}`">
                   {{ typeInfo(ev.type).label }}
                 </span>
               </div>
@@ -110,7 +110,7 @@ function formatMonthShort(date) {
   text-align: center;
   color: var(--gray-400);
   font-size: 0.9rem;
-  border: 2px dashed var(--green-200);
+  border: 1px dashed var(--border);
   border-radius: 10px;
 }
 
@@ -122,25 +122,30 @@ function formatMonthShort(date) {
   gap: 0.75rem;
   margin-bottom: 0.6rem;
   padding-bottom: 0.4rem;
-  border-bottom: 2px solid var(--green-200);
+  border-bottom: 1px solid var(--border);
 }
 
-.month-name { font-size: 1.05rem; font-weight: 700; color: var(--green-800); }
-.event-count { font-size: 0.78rem; color: var(--gray-400); font-weight: 400; }
+.month-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--green-900);
+}
+.event-count { font-size: 0.75rem; color: var(--gray-400); font-weight: 400; }
 
 .events-list { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .event-card {
   display: flex;
   gap: 0.75rem;
-  background: white;
-  border: 1px solid var(--green-100);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.7rem 0.9rem;
+  padding: 0.85rem 0.95rem;
   transition: box-shadow 0.15s;
+  box-shadow: 0 8px 22px rgba(30, 56, 38, 0.05);
 }
 
-.event-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.event-card:hover { box-shadow: 0 12px 30px rgba(30, 56, 38, 0.09); }
 
 .event-date-col {
   display: flex;
@@ -149,12 +154,12 @@ function formatMonthShort(date) {
   justify-content: center;
   min-width: 38px;
   background: var(--green-50);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.3rem;
 }
 
 .event-day { font-size: 1.1rem; font-weight: 700; color: var(--green-800); line-height: 1; }
-.event-month-short { font-size: 0.68rem; color: var(--green-600); text-transform: uppercase; letter-spacing: 0.05em; }
+.event-month-short { font-size: 0.65rem; color: var(--green-600); text-transform: uppercase; letter-spacing: 0.05em; }
 
 .event-body { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
 
@@ -164,7 +169,7 @@ function formatMonthShort(date) {
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.15rem 0.5rem;
-  border-radius: 20px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--c) 12%, white);
   color: color-mix(in srgb, var(--c) 80%, #000);
   border: 1px solid color-mix(in srgb, var(--c) 25%, transparent);
@@ -174,7 +179,7 @@ function formatMonthShort(date) {
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.15rem 0.5rem;
-  border-radius: 20px;
+  border-radius: 8px;
 }
 
 .event-name { font-weight: 600; font-size: 0.88rem; color: var(--gray-800); }
@@ -183,12 +188,17 @@ function formatMonthShort(date) {
 
 .summary-box {
   background: var(--green-50);
-  border: 1px solid var(--green-200);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem 1.2rem;
 }
 
-.summary-box h4 { font-size: 0.85rem; font-weight: 700; color: var(--green-800); margin-bottom: 0.6rem; }
+.summary-box h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--green-900);
+  margin-bottom: 0.6rem;
+}
 
 .summary-grid {
   display: flex;
